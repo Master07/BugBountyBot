@@ -1,0 +1,73 @@
+# Regression corpus — labeled TP/FP cases the suite must match.
+# Add a row for every real finding and every real false positive so a
+# detection regression can never silently return.
+#
+# kind: tp = the module MUST find it; fp = the module MUST NOT flag it.
+# Each case is served by the fixture server at /corpus/<id> with the given
+# response (status + headers + body template, {PROBE} replaced with the probe).
+
+- id: "cors-superhuman-tp"
+  module: cors
+  kind: tp
+  note: "superhuman.com real: ACAO * + ACAC true — correct DETECTION (reporting judgment is separate)"
+  response:
+    status: 200
+    headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Credentials": "true" }
+    body: "ok"
+
+- id: "cors-reflected-tp"
+  module: cors
+  kind: tp
+  note: "fixture: ACAO reflects attacker origin"
+  response:
+    status: 200
+    headers: { "Access-Control-Allow-Origin": "{PROBE}" }
+    body: "ok"
+
+- id: "xss-encoded-fp"
+  module: xss
+  kind: fp
+  note: "shopify/superhuman behavior: HTML-encoded reflection, no execution"
+  response:
+    status: 200
+    body: "<html><body>results for &lt;script&gt;alert(1)&lt;/script&gt;</body></html>"
+
+- id: "sqli-dynamic-fp"
+  module: sqli
+  kind: fp
+  note: "synthetic: per-request nonce makes boolean-diff unreliable"
+  response:
+    status: 200
+    body: "<html>nonce={RANDOM} q={PROBE}</html>"
+
+- id: "sqli-boolean-tp"
+  module: sqli
+  kind: tp
+  note: "fixture: 1=1 vs 1=2 differ + error marker triggers detection"
+  response:
+    status: 200
+    body: "<html>SQL syntax error near {PROBE} MySQL</html>"
+
+- id: "redirect-benign-fp"
+  module: redirect
+  kind: fp
+  note: "synthetic: 200 body mentioning location, no 3xx"
+  response:
+    status: 200
+    body: "<html>location: not a redirect</html>"
+
+- id: "secrets-gitconfig-tp"
+  module: secrets
+  kind: tp
+  note: "fixture: .git/config exposed with [core] marker"
+  response:
+    status: 200
+    body: "[core]\n\tbare = false\nrepositoryformatversion = 0"
+
+- id: "idor-resource-tp"
+  module: idor
+  kind: tp
+  note: "fixture: 200 on alternate resource id"
+  response:
+    status: 200
+    body: "<html>resource {PROBE}</html>"

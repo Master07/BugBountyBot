@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package + dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Anti-monkeypatch canary
+        # Tests must exercise the production path — a monkeypatch that replaces
+        # a VULN MODULE's select_payloads/inject with a fake hides broken
+        # detection (the SSRF bug this repo hit). Fail the build if one sneaks
+        # in. (Monkeypatching the runner's public API to simulate a failure is
+        # fine — that tests the failure path itself.)
+        run: |
+          if grep -rE "(SSRFModule|XSSModule|SQLiModule|IDORModule|RedirectModule|CORSModule|VulnModule)\.(select_payloads|inject|detect|confirm)\s*=" tests/ ; then
+            echo "❌ test replaces a vuln-module production method"
+            exit 1
+          fi
+          echo "✅ no production-path bypasses"
+
+      - name: CLI entrypoint canary
+        # "works in pytest, breaks in the installed CLI" (the benchmark bug) must
+        # not recur: run every top-level command from a non-repo directory so
+        # sys.path can't accidentally include the repo root.
+        run: |
+          cd /tmp
+          # `benchmark` runs the real benchmark (imports the benchmark package —
+          # the exact bug this canary guards). The `--help` forms force each
+          # import-heavy subcommand module to load without DB/network side effects.
+          for cmd in \
+            "--help" "program list" "payloads stats" "backup" "oob status" \
+            "benchmark" \
+            "nuclei --help" "logic --help" "session --help" \
+            "scan --help" "vuln --help" "report --help"; do
+            if ! bugbounty $cmd >/dev/null 2>&1; then
+              echo "❌ CLI entrypoint failed: bugbounty $cmd"
+              exit 1
+            fi
+          done
+          echo "✅ all CLI entrypoints work from a non-repo directory"
+
+      - name: Run full test suite
+        run: python -m pytest -q

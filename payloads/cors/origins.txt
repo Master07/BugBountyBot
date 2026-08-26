@@ -1,0 +1,4 @@
+# CORS test origins (used by the cors module directly, not injected)
+https://evil.com
+https://attacker.evil.com
+null

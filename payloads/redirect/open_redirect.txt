@@ -1,0 +1,8 @@
+//evil.com
+//evil.com/%2f..
+https://evil.com
+https://evil.com/%2f%2f
+/\evil.com
+javascript:alert(1)
+///evil.com
+https://evil.com.evil.com
